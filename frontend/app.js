@@ -1,5 +1,7 @@
-const API_KEY = 'REMOVED_API_KEY';
-const API_URL = `https://www.omdbapi.com/?apikey=${API_KEY}`;
+// Flask backend URL
+// For local testing, use http://127.0.0.1:5000
+// Later, replace this with your Render backend URL.
+const API_URL = 'http://127.0.0.1:5000';
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
@@ -9,10 +11,13 @@ const moviesContainer = document.getElementById('moviesContainer');
 async function searchMovies(query) {
     try {
         showLoading();
-        
-        const response = await fetch(`${API_URL}&s=${encodeURIComponent(query)}`);
+
+        const response = await fetch(
+            `${API_URL}/api/search-movies?query=${encodeURIComponent(query)}`
+        );
+
         const data = await response.json();
-        
+
         if (data.Response === "True") {
             displayMovies(data.Search);
         } else {
@@ -29,12 +34,14 @@ async function searchMovies(query) {
 function displayMovies(movies) {
     moviesContainer.innerHTML = movies.map(movie => `
         <div class="movie-card">
-            <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'https://via.placeholder.com/300x450?text=No+Poster'}" 
-                 class="movie-poster" 
+            <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'https://via.placeholder.com/300x450?text=No+Poster'}"
+                 class="movie-poster"
                  alt="${movie.Title}">
+
             <div class="movie-info">
                 <h3 class="movie-title">${movie.Title}</h3>
                 <p class="movie-year">${movie.Year}</p>
+
                 <button class="similar-btn" onclick="showMovieDetails('${movie.imdbID}')">
                     More Details <i class="fas fa-chevron-right"></i>
                 </button>
@@ -46,9 +53,13 @@ function displayMovies(movies) {
 async function showMovieDetails(imdbID) {
     try {
         showLoading();
-        const response = await fetch(`${API_URL}&i=${imdbID}`);
+
+        const response = await fetch(
+            `${API_URL}/api/movie-details?imdbID=${encodeURIComponent(imdbID)}`
+        );
+
         const data = await response.json();
-        
+
         if (data.Response === 'True') {
             displayMovieDetails(data);
         } else {
@@ -65,13 +76,16 @@ async function showMovieDetails(imdbID) {
 function displayMovieDetails(movie) {
     const modal = document.createElement('div');
     modal.className = 'modal';
+
     modal.innerHTML = `
         <div class="modal-content">
             <span class="close-btn">&times;</span>
+
             <div class="modal-poster">
-                <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'https://via.placeholder.com/300x450?text=No+Poster'}" 
+                <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'https://via.placeholder.com/300x450?text=No+Poster'}"
                      alt="${movie.Title}">
             </div>
+
             <div class="modal-info">
                 <h2>${movie.Title} (${movie.Year})</h2>
                 <p><strong>Rating:</strong> ${movie.imdbRating}/10</p>
@@ -80,42 +94,46 @@ function displayMovieDetails(movie) {
                 <p><strong>Director:</strong> ${movie.Director}</p>
                 <p><strong>Cast:</strong> ${movie.Actors}</p>
                 <p><strong>Plot:</strong> ${movie.Plot}</p>
+
                 <button class="similar-btn" onclick="fetchSimilarMovies('${movie.imdbID}')">
                     More Like This <i class="fas fa-film"></i>
                 </button>
             </div>
         </div>
     `;
-    
+
     modal.querySelector('.close-btn').addEventListener('click', () => {
         document.body.removeChild(modal);
     });
-    
+
     document.body.appendChild(modal);
 }
 
 async function fetchSimilarMovies(imdbID) {
     try {
         showLoading();
-        const movieDetails = await (await fetch(`${API_URL}&i=${imdbID}`)).json();
-        
-        if (movieDetails.Response === 'True') {
-            const genre = movieDetails.Genre.split(',')[0]; // Take first genre
-            const response = await fetch(`${API_URL}&s=${encodeURIComponent(genre)}&type=movie`);
-            const data = await response.json();
-            
-            if (data.Response === "True") {
-                // Filter out the current movie from results
-                const similarMovies = data.Search.filter(movie => movie.imdbID !== imdbID);
-                if (similarMovies.length > 0) {
-                    displayMovies(similarMovies.slice(0, 6)); // Show first 6 similar movies
-                    document.querySelector('.modal').remove(); // Close the details modal
-                } else {
-                    showError("No similar movies found");
+
+        const response = await fetch(
+            `${API_URL}/api/similar-movies?imdbID=${encodeURIComponent(imdbID)}`
+        );
+
+        const data = await response.json();
+
+        if (data.Response === "True") {
+            const similarMovies = data.Search;
+
+            if (similarMovies && similarMovies.length > 0) {
+                displayMovies(similarMovies.slice(0, 6));
+
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    modal.remove();
                 }
             } else {
-                showError(data.Error || "No similar movies found");
+                showError("No similar movies found");
             }
+        } else {
+            showError(data.Error || "No similar movies found");
         }
     } catch (error) {
         console.error("Similar movies error:", error);
@@ -146,6 +164,7 @@ function showLoading() {
 
 function hideLoading() {
     const loadingElement = document.querySelector('.loading-spinner');
+
     if (loadingElement) {
         loadingElement.parentElement.remove();
     }
@@ -154,17 +173,23 @@ function hideLoading() {
 // Event Listeners
 searchBtn.addEventListener('click', () => {
     const query = searchInput.value.trim();
-    if (query) searchMovies(query);
+
+    if (query) {
+        searchMovies(query);
+    }
 });
 
 searchInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const query = searchInput.value.trim();
-        if (query) searchMovies(query);
+
+        if (query) {
+            searchMovies(query);
+        }
     }
 });
 
 // Initialize with popular movies
 window.addEventListener('DOMContentLoaded', () => {
-    searchMovies('action'); // Default search to show some movies on load
+    searchMovies('action');
 });

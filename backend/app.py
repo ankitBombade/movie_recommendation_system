@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 import requests
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 # OMDB API Configuration
-OMDB_API_KEY = 'REMOVED_API_KEY'
+OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 OMDB_URL = 'http://www.omdbapi.com/'
 
 @app.route('/api/search-movies', methods=['GET'])
